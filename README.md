@@ -1,2 +1,2 @@
-# Logger-Settings-Tool
+# Mnemosyne
 A tool for setting of the Logger extension
