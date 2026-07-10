@@ -113,6 +113,10 @@
   <div class="card">
     <div class="section-title">Output</div>
     <p class="field-note">Click "Generate JSON" any time after editing, then copy it into the Confluence page.</p>
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:10px; cursor:pointer;">
+      <input type="checkbox" id="singleLineToggle">
+      Single-line format (for Confluence)
+    </label>
     <div class="toolbar">
       <button class="primary" id="btnGenerate">Generate JSON</button>
       <button id="btnCopy">Copy to clipboard</button>
@@ -355,17 +359,48 @@
     return out;
   }
 
+  // Single-line JSON, but with a space after every ":" and "," and around
+  // brackets — matches the format already used on the Confluence page (and
+  // is much easier to read at a glance than JSON.stringify's fully compact
+  // output). Built by walking the value ourselves (rather than regexing the
+  // stringified text) so spacing never gets inserted inside a string value
+  // itself, even if that string happens to contain a literal comma/colon.
+  function compactStringify(value){
+    if (Array.isArray(value)) {
+      if (!value.length) return "[]";
+      return "[ " + value.map(compactStringify).join(", ") + " ]";
+    }
+    if (value && typeof value === "object") {
+      var keys = Object.keys(value);
+      if (!keys.length) return "{}";
+      return "{ " + keys.map(function(k){ return JSON.stringify(k) + ": " + compactStringify(value[k]); }).join(", ") + " }";
+    }
+    return JSON.stringify(value);
+  }
+
+  function serialize(obj){
+    var singleLine = document.getElementById("singleLineToggle").checked;
+    return singleLine ? compactStringify(obj) : JSON.stringify(obj, null, 2);
+  }
+
   document.getElementById("btnGenerate").addEventListener("click", function(){
     var obj = buildOutputObject();
-    document.getElementById("output").value = JSON.stringify(obj, null, 2);
+    document.getElementById("output").value = serialize(obj);
     setStatus("genStatus", "JSON generated below.", false);
+  });
+
+  document.getElementById("singleLineToggle").addEventListener("change", function(){
+    // Re-render immediately if there's already output on screen, so toggling
+    // the checkbox updates it without needing a second click on Generate.
+    if (document.getElementById("output").value.trim()) {
+      document.getElementById("output").value = serialize(buildOutputObject());
+    }
   });
 
   document.getElementById("btnCopy").addEventListener("click", function(){
     var out = document.getElementById("output");
     if (!out.value) {
-      var obj = buildOutputObject();
-      out.value = JSON.stringify(obj, null, 2);
+      out.value = serialize(buildOutputObject());
     }
     out.select();
     var done = function(){ setStatus("genStatus", "Copied to clipboard.", false); };
@@ -379,7 +414,7 @@
 
   document.getElementById("btnDownload").addEventListener("click", function(){
     var obj = buildOutputObject();
-    var text = JSON.stringify(obj, null, 2);
+    var text = serialize(obj);
     document.getElementById("output").value = text;
     var blob = new Blob([text], { type: "application/json" });
     var url = URL.createObjectURL(blob);
