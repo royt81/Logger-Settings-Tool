@@ -142,7 +142,13 @@
     { key:"whitelabelLinks", label:"Whitelabel Links",  type:"link", col1:"URL",          col2:"Label" },
     { key:"handbookLinks",   label:"Handbook Links",    type:"link", col1:"URL",          col2:"Label" },
     { key:"formulasLinks",   label:"Formulas Links",    type:"link", col1:"URL",          col2:"Label" },
-    { key:"copyPasteMenu",   label:"Copy/Paste Menu",   type:"text", col1:"Label shown",  col2:"Text copied (multi-line OK)" }
+    { key:"copyPasteMenu",   label:"Copy/Paste Menu",   type:"text", col1:"Label shown",  col2:"Text copied (multi-line OK)" },
+    // Custom tools shown in the Logger's Tools sidebar (below the built-in
+    // ABC / MP Calculator / IBAN Validator / Compare text / Update Info).
+    // Each entry is a name + URL — e.g. the GitHub Pages URLs of the
+    // externally hosted tools (Balance CSV, Billing PDF Reader, Ticket
+    // Links). Imported by the Logger via Update Info's "customTools" key.
+    { key:"customTools",     label:"Custom Tools",      type:"link", col1:"URL",          col2:"Tool name" }
   ];
 
   // Blank skeleton — one empty key per category, no pre-filled entries.
