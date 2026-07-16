@@ -11,153 +11,260 @@
 <link rel="manifest" href="favicon/site.webmanifest">
 <style>
   :root{
-    --bg:#f5f6f8; --card:#ffffff; --border:#e0e2e7; --text:#1f2328; --muted:#6b7280;
-    --accent:#2563eb; --accent-hover:#1d4ed8; --danger:#dc2626; --danger-hover:#b91c1c;
-    --ok:#16a34a; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --bg:#f6f7f9; --panel:#ffffff; --card:#ffffff; --border:#e4e7ec;
+    --text:#1a1f27; --muted:#667085; --accent:#2563eb; --accent-hover:#1d4ed8;
+    --accent-soft:#e8effd; --danger:#dc2626; --danger-soft:#fdecec;
+    --ok:#16a34a; --warn:#b45309; --warn-border:#f5c97b;
+    --input-bg:#ffffff; --hover:#f0f2f5; --code-bg:#f9fafb;
+    --shadow:0 1px 3px rgba(16,24,40,.07), 0 1px 2px rgba(16,24,40,.05);
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  [data-theme="dark"]{
+    --bg:#0f1115; --panel:#151920; --card:#1a1f27; --border:#2a303a;
+    --text:#e6e8eb; --muted:#8b93a1; --accent:#4c8dff; --accent-hover:#6da3ff;
+    --accent-soft:rgba(76,141,255,.14); --danger:#f87171; --danger-soft:rgba(248,113,113,.12);
+    --ok:#4ade80; --warn:#fbbf24; --warn-border:#8a6d1f;
+    --input-bg:#12161c; --hover:#222833; --code-bg:#12161c;
+    --shadow:none;
   }
   *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
   body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-    background:var(--bg); color:var(--text); padding:24px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text); display:flex; min-height:100vh;
+    transition:background .2s,color .2s;
   }
-  h1{font-size:20px; margin:0 0 4px;}
-  .subtitle{color:var(--muted); font-size:13px; margin:0 0 20px;}
-  .container{max-width:980px; margin:0 auto;}
-  .card{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; margin-bottom:18px;}
-  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:250px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+  }
+  .brand{display:flex; align-items:center; gap:11px; padding:20px 18px 16px;}
+  .brand-logo{
+    width:34px; height:34px; border-radius:9px; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px;
+    flex-shrink:0;
+  }
+  .brand-name{font-size:15px; font-weight:700; line-height:1.2;}
+  .brand-sub{font-size:11px; color:var(--muted);}
+  .nav{flex:1; overflow-y:auto; padding:6px 10px;}
+  .nav-label{
+    font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); padding:14px 10px 5px;
+  }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
+    cursor:pointer; color:var(--muted); font-size:13.5px; user-select:none; border:none;
+    background:none; width:100%; text-align:left; font-family:inherit;
+  }
+  .nav-item:hover{background:var(--hover); color:var(--text);}
+  .nav-item.active{background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .nav-item svg{width:16px; height:16px; flex-shrink:0;}
+  .nav-badge{
+    margin-left:auto; font-size:11px; font-weight:600; background:var(--hover);
+    color:var(--muted); border-radius:10px; padding:1px 8px; min-width:24px; text-align:center;
+  }
+  .nav-item.active .nav-badge{background:var(--accent); color:#fff;}
+  .sidebar-footer{border-top:1px solid var(--border); padding:12px 14px; display:flex; flex-direction:column; gap:8px;}
+  .save-indicator{font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px; min-height:16px;}
+  .save-indicator .dot{width:7px; height:7px; border-radius:50%; background:var(--ok); flex-shrink:0;}
+  .footer-actions{display:flex; gap:8px;}
+  .footer-actions button{flex:1;}
+
+  /* ---------- Main ---------- */
+  .main{flex:1; min-width:0; padding:34px 44px 60px;}
+  .view{max-width:880px; margin:0 auto;}
+  .view-header{margin-bottom:22px;}
+  .view-header h1{font-size:21px; margin:0 0 6px;}
+  .view-header p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.55; max-width:640px;}
+
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:20px; margin-bottom:18px; box-shadow:var(--shadow);
+  }
+  .card h2{font-size:14.5px; margin:0 0 6px;}
+  .card .hint{font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.5;}
+
+  /* ---------- Buttons & inputs ---------- */
   button{
-    font:inherit; font-size:13px; padding:7px 14px; border-radius:6px; border:1px solid var(--border);
-    background:#fff; color:var(--text); cursor:pointer;
+    font:inherit; font-size:13px; padding:7px 14px; border-radius:8px;
+    border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer;
   }
-  button:hover{background:#f0f1f3;}
-  button.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  button:hover{background:var(--hover);}
+  button.primary{background:var(--accent); color:#fff; border-color:transparent;}
   button.primary:hover{background:var(--accent-hover);}
-  button.danger{color:var(--danger); border-color:#f3d0d0;}
-  button.danger:hover{background:#fdecec; border-color:var(--danger-hover);}
-  button.small{padding:4px 8px; font-size:12px;}
-  .tabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;}
-  .tab{
-    padding:7px 12px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid transparent;
-    color:var(--muted); background:transparent;
+  button.danger{color:var(--danger); border-color:var(--danger-soft);}
+  button.danger:hover{background:var(--danger-soft);}
+  button.ghost{border-color:transparent; background:none; color:var(--muted);}
+  button.ghost:hover{background:var(--hover); color:var(--text);}
+  input[type=text], textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+    font-size:13px; font-family:inherit; color:var(--text); background:var(--input-bg);
+    resize:vertical;
   }
-  .tab.active{background:var(--accent); color:#fff;}
-  .tab:not(.active):hover{background:#eef1f5;}
-  .panel{display:none;}
-  .panel.active{display:block;}
-  .row{
-    display:grid; grid-template-columns: 1fr 1fr auto; gap:8px; align-items:start;
-    padding:8px 0; border-bottom:1px solid #f0f1f3;
+  input[type=text]:focus, textarea:focus{outline:2px solid var(--accent-soft); border-color:var(--accent);}
+  input.warn-url{border-color:var(--warn-border);}
+
+  /* ---------- List editor ---------- */
+  .list-toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+  .filter-wrap{position:relative; flex:1; max-width:280px;}
+  .filter-wrap input{padding-left:30px;}
+  .filter-wrap svg{
+    position:absolute; left:9px; top:50%; transform:translateY(-50%);
+    width:14px; height:14px; color:var(--muted); pointer-events:none;
   }
-  .row:last-child{border-bottom:none;}
-  .row input, .row textarea{
-    width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px;
-    font-size:13px; font-family:inherit; color:var(--text); resize:vertical;
-  }
-  .row textarea{min-height:38px;}
-  .row-actions{display:flex; gap:4px; align-items:flex-start; padding-top:2px;}
   .col-headers{
-    display:grid; grid-template-columns: 1fr 1fr auto; gap:8px; font-size:12px; color:var(--muted);
-    font-weight:600; padding-bottom:6px; border-bottom:1px solid var(--border); margin-bottom:2px;
+    display:grid; grid-template-columns:26px 1fr 1fr 96px; gap:10px; font-size:11.5px;
+    color:var(--muted); font-weight:600; padding:0 12px 6px; letter-spacing:.02em;
   }
-  .empty-hint{color:var(--muted); font-size:13px; padding:10px 0;}
-  .add-row-btn{margin-top:10px;}
+  .rows{}
+  .row{
+    display:grid; grid-template-columns:26px 1fr 1fr 96px; gap:10px; align-items:start;
+    padding:10px 12px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px;
+    background:var(--card); box-shadow:var(--shadow);
+  }
+  .row.dragging{opacity:.45; border-style:dashed;}
+  .row textarea{min-height:36px;}
+  .drag-handle{
+    cursor:grab; color:var(--muted); padding-top:9px; text-align:center; user-select:none;
+    font-size:13px; letter-spacing:1px; touch-action:none;
+  }
+  .drag-handle:active{cursor:grabbing;}
+  .row-actions{display:flex; gap:2px; align-items:center; padding-top:3px; justify-content:flex-end;}
+  .icon-btn{
+    width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center;
+    border:none; background:none; border-radius:7px; color:var(--muted); font-size:13px;
+  }
+  .icon-btn:hover{background:var(--hover); color:var(--text);}
+  .icon-btn.del:hover{background:var(--danger-soft); color:var(--danger);}
+  .url-warn{grid-column:2 / span 3; font-size:11.5px; color:var(--warn); margin-top:-2px;}
+
+  .empty-state{
+    border:1.5px dashed var(--border); border-radius:12px; padding:38px 20px; text-align:center;
+    color:var(--muted); font-size:13.5px;
+  }
+  .empty-state .big{font-size:26px; margin-bottom:8px;}
+  .empty-state button{margin-top:14px;}
+  .add-row-btn{margin-top:4px;}
+
+  /* ---------- Import / Export ---------- */
+  .dropzone{
+    border:1.5px dashed var(--border); border-radius:12px; padding:26px 18px; text-align:center;
+    color:var(--muted); font-size:13.5px; cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag-over{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .dropzone .sub{font-size:12px; margin-top:4px;}
+  details{margin-top:12px;}
+  details summary{cursor:pointer; font-size:13px; color:var(--accent); user-select:none;}
+  textarea#pasteArea{min-height:120px; font-family:var(--mono); font-size:12px; margin-top:10px;}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   textarea#output{
-    width:100%; min-height:260px; font-family:var(--mono); font-size:12.5px; padding:12px;
-    border:1px solid var(--border); border-radius:8px; background:#fafbfc; white-space:pre;
+    min-height:280px; font-family:var(--mono); font-size:12.5px; padding:12px;
+    background:var(--code-bg); white-space:pre; margin-top:12px;
   }
-  textarea#importArea{
-    width:100%; min-height:140px; font-family:var(--mono); font-size:12px; padding:10px;
-    border:1px solid var(--border); border-radius:8px;
-  }
-  .section-title{font-size:14px; font-weight:600; margin:0 0 10px;}
+  .toggle-label{display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer; user-select:none;}
+  .stats-line{font-size:12.5px; color:var(--muted); margin:10px 0 0; line-height:1.6;}
+  .stats-line .warn-text{color:var(--warn); font-weight:600;}
   .status{font-size:12.5px; margin-top:8px; min-height:16px;}
   .status.ok{color:var(--ok);}
   .status.err{color:var(--danger);}
-  details{margin-top:6px;}
-  details summary{cursor:pointer; font-size:13px; color:var(--accent);}
-  .field-note{font-size:12px; color:var(--muted); margin:6px 0 12px;}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed; bottom:22px; right:22px; background:var(--text); color:var(--bg);
+    padding:10px 16px; border-radius:9px; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.25);
+    opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s; pointer-events:none;
+    z-index:50;
+  }
+  .toast.show{opacity:1; transform:none;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:760px){
+    body{flex-direction:column;}
+    .sidebar{width:100%; height:auto; position:static; border-right:none; border-bottom:1px solid var(--border);}
+    .nav{display:flex; flex-wrap:wrap; gap:2px; padding:4px 10px 10px;}
+    .nav-label{display:none;}
+    .nav-item{width:auto;}
+    .main{padding:22px 16px 50px;}
+    .row, .col-headers{grid-template-columns:22px 1fr 1fr 60px;}
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Mnemosyne</h1>
-  <p class="subtitle">Standalone editor for the Logger extension's data lists. Edit entries below, then generate JSON to paste into the Confluence page. This tool is not part of the Logger extension itself.</p>
 
-  <div class="card">
-    <div class="section-title">Data source</div>
-    <div class="toolbar">
-      <button id="btnShowImport">Import JSON…</button>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <div>
+      <div class="brand-name">Mnemosyne</div>
+      <div class="brand-sub">Logger settings editor</div>
+    </div>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div class="sidebar-footer">
+    <div class="save-indicator" id="saveIndicator"><span class="dot"></span><span id="saveText">All changes saved locally</span></div>
+    <div class="footer-actions">
+      <button class="ghost" id="themeToggle" title="Toggle dark mode">🌙 Dark</button>
       <button class="danger" id="btnClearAll">Clear all</button>
     </div>
-    <div id="importWrap" style="display:none; margin-top:12px;">
-      <textarea id="importArea" placeholder="Paste JSON here (e.g. copied from the Confluence page) and click Load"></textarea>
-      <div class="toolbar" style="margin-top:8px;">
-        <button class="primary" id="btnDoImport">Load pasted JSON</button>
-        <button id="btnCancelImport">Cancel</button>
-      </div>
-    </div>
-    <div class="status" id="importStatus"></div>
   </div>
+</aside>
 
-  <div class="card">
-    <div class="section-title">Log Code</div>
-    <p class="field-note">Optional tag inserted into the copied log line, e.g. "RC" for <code>DD.MM.YYYY_RC_INITIALS: message</code>. Leave blank to copy just <code>DD.MM.YYYY_INITIALS: message</code> — matches <code>logCode</code> in a-lists.js.</p>
-    <input type="text" id="logCodeInput" placeholder="e.g. RC (leave blank for none)" style="max-width:260px; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit;">
-  </div>
+<main class="main"><div class="view" id="view"></div></main>
 
-  <div class="card">
-    <div class="tabs" id="tabs"></div>
-    <div id="panels"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">Output</div>
-    <p class="field-note">Click "Generate JSON" any time after editing, then copy it into the Confluence page.</p>
-    <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:10px; cursor:pointer;">
-      <input type="checkbox" id="singleLineToggle">
-      Single-line format (for Confluence)
-    </label>
-    <div class="toolbar">
-      <button class="primary" id="btnGenerate">Generate JSON</button>
-      <button id="btnCopy">Copy to clipboard</button>
-      <button id="btnDownload">Download .json</button>
-    </div>
-    <div class="status" id="genStatus"></div>
-    <textarea id="output" readonly placeholder="Generated JSON will appear here…" style="margin-top:10px;"></textarea>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none">
 
 <script>
 (function(){
   "use strict";
 
-  // ---- Category configuration -------------------------------------------
-  // type "text": plain [col1, col2] pairs (logger entries, copy/paste menu)
-  // type "link": [url, label] pairs; url is stored plain internally and
-  //              formatted as "[url](url)" only when JSON is generated,
-  //              matching the format used on the Confluence page.
+  // ---- Configuration ------------------------------------------------------
+  // Data model & JSON output format are IDENTICAL to the previous version of
+  // this tool — the extension's Update Info page reads the same keys.
   var CATEGORIES = [
-    { key:"logEntries",      label:"Log Entries",       type:"text", col1:"Short label",  col2:"Full message (multi-line OK)" },
-    { key:"linkList",        label:"Shortcut Links",    type:"link", col1:"URL",          col2:"Label" },
-    { key:"whitelabelLinks", label:"Whitelabel Links",  type:"link", col1:"URL",          col2:"Label" },
-    { key:"handbookLinks",   label:"Handbook Links",    type:"link", col1:"URL",          col2:"Label" },
-    { key:"formulasLinks",   label:"Formulas Links",    type:"link", col1:"URL",          col2:"Label" },
-    { key:"copyPasteMenu",   label:"Copy/Paste Menu",   type:"text", col1:"Label shown",  col2:"Text copied (multi-line OK)" }
+    { key:"logEntries",      label:"Log Entries",      icon:"lines", type:"text",
+      col1:"Short label", col2:"Full message (multi-line OK)",
+      desc:"Prewritten log lines. The short label is what the user sees in the popup; the full message is what gets copied as DD.MM.YYYY_INITIALS: message." },
+    { key:"linkList",        label:"Shortcut Links",   icon:"link", type:"link",
+      col1:"URL", col2:"Label",
+      desc:"Top shortcut links shown in the Logger's main shortcuts panel." },
+    { key:"whitelabelLinks", label:"Whitelabel Links", icon:"link", type:"link",
+      col1:"URL", col2:"Label",
+      desc:"Whitelabel partner links shown in the Whitelabel sidebar." },
+    { key:"handbookLinks",   label:"Handbook Links",   icon:"link", type:"link",
+      col1:"URL", col2:"Label",
+      desc:"Handbook links shown in the Handbook sidebar. URLs starting with http open in a new tab." },
+    { key:"formulasLinks",   label:"Formulas Links",   icon:"link", type:"link",
+      col1:"URL", col2:"Label",
+      desc:"Forms and formulas shown in the Formulas sidebar." },
+    { key:"copyPasteMenu",   label:"Copy/Paste Menu",  icon:"clipboard", type:"text",
+      col1:"Label shown", col2:"Text copied (multi-line OK)",
+      desc:"Quick copy snippets. Clicking an entry in the popup copies the text to the clipboard." }
   ];
 
-  // Blank skeleton — one empty key per category, no pre-filled entries.
-  // (This tool used to ship with the team's live data baked in; it now
-  // always starts empty. Use "Import JSON…" to load an existing file.)
-  var EMPTY_DATA = { logCode: "" };
-  CATEGORIES.forEach(function(c){ EMPTY_DATA[c.key] = []; });
+  var ICONS = {
+    lines:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+    link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+    clipboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+    gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>',
+    io:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M4 21h16"/></svg>',
+    search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+  };
 
-  // ---- State --------------------------------------------------------------
-  var state = { logCode: "" }; // key -> array of [col1, col2] (link URLs stored plain)
+  var STORAGE_KEY = "mnemosyne_data_v1";
+  var THEME_KEY = "mnemosyne_theme";
+  var SINGLELINE_KEY = "mnemosyne_singleline";
+
+  // ---- State ---------------------------------------------------------------
+  var state = { logCode: "" };
   CATEGORIES.forEach(function(c){ state[c.key] = []; });
+  var activeView = CATEGORIES[0].key; // category key | "general" | "io"
+  var filterText = "";
+  var draggedRow = null;
 
-  var activeKey = CATEGORIES[0].key;
-
-  // ---- Helpers --------------------------------------------------------------
+  // ---- Helpers -------------------------------------------------------------
   function stripLinkFormat(v){
     if (typeof v !== "string") return v;
     var m = v.match(/^\[(.*)\]\((.*)\)$/s);
@@ -173,198 +280,459 @@
     if (attrs) Object.keys(attrs).forEach(function(k){
       if (k === "class") e.className = attrs[k];
       else if (k === "text") e.textContent = attrs[k];
+      else if (k === "html") e.innerHTML = attrs[k];
       else e.setAttribute(k, attrs[k]);
     });
     (children||[]).forEach(function(c){ e.appendChild(c); });
     return e;
   }
-
-  // ---- Rendering --------------------------------------------------------------
-  function renderTabs(){
-    var tabsEl = document.getElementById("tabs");
-    tabsEl.innerHTML = "";
-    CATEGORIES.forEach(function(c){
-      var count = state[c.key].length;
-      var tab = el("div", { class: "tab" + (c.key === activeKey ? " active" : "") , text: c.label + " (" + count + ")" });
-      tab.addEventListener("click", function(){
-        activeKey = c.key;
-        renderTabs();
-        renderPanels();
-      });
-      tabsEl.appendChild(tab);
-    });
+  function icon(name){
+    var s = el("span", { html: ICONS[name] || "" });
+    s.style.display = "contents";
+    return s.firstChild;
+  }
+  function isSuspectUrl(cat, v){
+    // Handbook links may be relative extension paths; everywhere else a URL
+    // is expected to start with http(s). Soft warning only — never blocks.
+    if (!v) return false;
+    if (/^https?:\/\//i.test(v)) return false;
+    if (cat.key === "handbookLinks") return false;
+    return true;
   }
 
-  function renderPanels(){
-    var panelsEl = document.getElementById("panels");
-    panelsEl.innerHTML = "";
-    CATEGORIES.forEach(function(c){
-      var panel = el("div", { class: "panel" + (c.key === activeKey ? " active" : ""), id: "panel-" + c.key });
-      var headers = el("div", { class: "col-headers" }, [
-        el("div", { text: c.col1 }),
-        el("div", { text: c.col2 }),
-        el("div", { text: "" })
-      ]);
-      panel.appendChild(headers);
-
-      var rows = state[c.key];
-      if (rows.length === 0) {
-        panel.appendChild(el("div", { class: "empty-hint", text: "No entries yet. Click \"+ Add row\" below." }));
+  // ---- Persistence (autosave) ----------------------------------------------
+  var saveTimer = null;
+  function persist(){
+    clearTimeout(saveTimer);
+    var st = document.getElementById("saveText");
+    st.textContent = "Saving…";
+    saveTimer = setTimeout(function(){
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        st.textContent = "All changes saved locally";
+      } catch(e) {
+        st.textContent = "Could not save (storage full?)";
       }
-      rows.forEach(function(row, idx){
-        panel.appendChild(renderRow(c, row, idx));
-      });
-
-      var addBtn = el("button", { class: "add-row-btn", text: "+ Add row" });
-      addBtn.addEventListener("click", function(){
-        state[c.key].push(["", ""]);
-        renderTabs();
-        renderPanels();
-        focusLastRow(c.key);
-      });
-      panel.appendChild(addBtn);
-
-      panelsEl.appendChild(panel);
-    });
+      if (activeView === "io") refreshOutput();
+    }, 250);
+  }
+  function restore(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      loadData(JSON.parse(raw), true);
+      return true;
+    } catch(e) { return false; }
   }
 
-  function renderRow(cat, row, idx){
-    var rowEl = el("div", { class: "row" });
-
-    var field1;
-    if (cat.type === "link") {
-      field1 = el("input", { type: "text", placeholder: "https://…" });
-    } else {
-      field1 = el("input", { type: "text", placeholder: cat.col1 });
-    }
-    field1.value = row[0] || "";
-    field1.addEventListener("input", function(){ state[cat.key][idx][0] = field1.value; });
-
-    var field2;
-    if (cat.type === "link") {
-      field2 = el("input", { type: "text", placeholder: cat.col2 });
-      field2.value = row[1] || "";
-      field2.addEventListener("input", function(){ state[cat.key][idx][1] = field2.value; });
-    } else {
-      field2 = el("textarea", { placeholder: cat.col2 });
-      field2.value = row[1] || "";
-      field2.addEventListener("input", function(){ state[cat.key][idx][1] = field2.value; });
-    }
-
-    var upBtn = el("button", { class: "small", title: "Move up", text: "↑" });
-    upBtn.addEventListener("click", function(){
-      if (idx === 0) return;
-      var arr = state[cat.key];
-      var tmp = arr[idx-1]; arr[idx-1] = arr[idx]; arr[idx] = tmp;
-      renderPanels();
-    });
-    var downBtn = el("button", { class: "small", title: "Move down", text: "↓" });
-    downBtn.addEventListener("click", function(){
-      var arr = state[cat.key];
-      if (idx === arr.length - 1) return;
-      var tmp = arr[idx+1]; arr[idx+1] = arr[idx]; arr[idx] = tmp;
-      renderPanels();
-    });
-    var delBtn = el("button", { class: "small danger", title: "Delete row", text: "✕" });
-    delBtn.addEventListener("click", function(){
-      state[cat.key].splice(idx, 1);
-      renderTabs();
-      renderPanels();
-    });
-
-    var actions = el("div", { class: "row-actions" }, [upBtn, downBtn, delBtn]);
-
-    rowEl.appendChild(field1);
-    rowEl.appendChild(field2);
-    rowEl.appendChild(actions);
-    return rowEl;
-  }
-
-  function focusLastRow(key){
-    var panel = document.getElementById("panel-" + key);
-    if (!panel) return;
-    var rows = panel.querySelectorAll(".row");
-    if (rows.length === 0) return;
-    var last = rows[rows.length - 1];
-    var firstInput = last.querySelector("input, textarea");
-    if (firstInput) firstInput.focus();
-  }
-
-  // ---- Import / Load --------------------------------------------------------------
-  function loadData(data){
+  // ---- Load data into state -------------------------------------------------
+  function loadData(data, alreadyPlain){
     state.logCode = typeof data.logCode === "string" ? data.logCode : "";
-    document.getElementById("logCodeInput").value = state.logCode;
     CATEGORIES.forEach(function(c){
       var incoming = Array.isArray(data[c.key]) ? data[c.key] : [];
       state[c.key] = incoming.map(function(pair){
         var a = pair && pair[0] != null ? String(pair[0]) : "";
         var b = pair && pair[1] != null ? String(pair[1]) : "";
-        if (c.type === "link") a = stripLinkFormat(a);
+        if (c.type === "link" && !alreadyPlain) a = stripLinkFormat(a);
         return [a, b];
       });
     });
-    activeKey = CATEGORIES[0].key;
-    renderTabs();
-    renderPanels();
   }
 
-  document.getElementById("logCodeInput").addEventListener("input", function(){
-    state.logCode = this.value;
-  });
+  // ---- Toast ---------------------------------------------------------------
+  var toastTimer = null;
+  function toast(msg){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+  }
+
+  // ---- Sidebar --------------------------------------------------------------
+  function renderNav(){
+    var nav = document.getElementById("nav");
+    nav.innerHTML = "";
+
+    nav.appendChild(el("div", { class:"nav-label", text:"Settings" }));
+    nav.appendChild(navItem("general", "General", "gear", null));
+
+    nav.appendChild(el("div", { class:"nav-label", text:"Data lists" }));
+    CATEGORIES.forEach(function(c){
+      nav.appendChild(navItem(c.key, c.label, c.icon, state[c.key].length));
+    });
+
+    nav.appendChild(el("div", { class:"nav-label", text:"File" }));
+    nav.appendChild(navItem("io", "Import / Export", "io", null));
+  }
+  function navItem(key, label, iconName, count){
+    var item = el("button", { class:"nav-item" + (activeView === key ? " active" : "") });
+    item.appendChild(icon(iconName));
+    item.appendChild(el("span", { text: label }));
+    if (count !== null) item.appendChild(el("span", { class:"nav-badge", text: String(count) }));
+    item.addEventListener("click", function(){
+      activeView = key;
+      filterText = "";
+      renderNav();
+      renderView();
+    });
+    return item;
+  }
+
+  // ---- Main view -------------------------------------------------------------
+  function renderView(){
+    var view = document.getElementById("view");
+    view.innerHTML = "";
+    if (activeView === "general") return renderGeneral(view);
+    if (activeView === "io") return renderIO(view);
+    var cat = CATEGORIES.find(function(c){ return c.key === activeView; });
+    if (cat) renderCategory(view, cat);
+  }
+
+  // ---- General view ----------------------------------------------------------
+  function renderGeneral(view){
+    view.appendChild(viewHeader("General",
+      "Settings that apply to the whole Logger, not to a single list."));
+
+    var card = el("div", { class:"card" });
+    card.appendChild(el("h2", { text:"Log Code" }));
+    card.appendChild(el("p", { class:"hint",
+      text:'Optional tag inserted into every copied log line, e.g. "RC" makes DD.MM.YYYY_RC_INITIALS: message. Leave blank to copy DD.MM.YYYY_INITIALS: message without a tag.' }));
+    var input = el("input", { type:"text", placeholder:"e.g. RC (leave blank for none)" });
+    input.style.maxWidth = "260px";
+    input.value = state.logCode;
+    input.addEventListener("input", function(){ state.logCode = input.value; persist(); });
+    card.appendChild(input);
+    view.appendChild(card);
+  }
+
+  // ---- Category view -----------------------------------------------------------
+  function viewHeader(title, desc){
+    var h = el("div", { class:"view-header" });
+    h.appendChild(el("h1", { text: title }));
+    h.appendChild(el("p", { text: desc }));
+    return h;
+  }
+
+  function renderCategory(view, cat){
+    view.appendChild(viewHeader(cat.label, cat.desc));
+
+    var toolbar = el("div", { class:"list-toolbar" });
+    var filterWrap = el("div", { class:"filter-wrap" });
+    filterWrap.appendChild(icon("search"));
+    var filterInput = el("input", { type:"text", placeholder:"Filter entries…" });
+    filterInput.value = filterText;
+    filterWrap.appendChild(filterInput);
+    toolbar.appendChild(filterWrap);
+
+    var addBtn = el("button", { class:"primary", text:"+ Add entry" });
+    toolbar.appendChild(addBtn);
+    view.appendChild(toolbar);
+
+    var listWrap = el("div");
+    view.appendChild(listWrap);
+
+    function drawList(){
+      listWrap.innerHTML = "";
+      var rows = state[cat.key];
+
+      if (rows.length === 0) {
+        var empty = el("div", { class:"empty-state" });
+        empty.appendChild(el("div", { class:"big", text:"✨" }));
+        empty.appendChild(el("div", { text:"Nothing here yet." }));
+        var eBtn = el("button", { class:"primary", text:"+ Add the first entry" });
+        eBtn.addEventListener("click", addEntry);
+        empty.appendChild(eBtn);
+        listWrap.appendChild(empty);
+        return;
+      }
+
+      listWrap.appendChild(el("div", { class:"col-headers" }, [
+        el("div", { text:"" }),
+        el("div", { text: cat.col1 }),
+        el("div", { text: cat.col2 }),
+        el("div", { text:"", style:"text-align:right" })
+      ]));
+
+      var container = el("div", { class:"rows" });
+      container.addEventListener("dragover", function(e){
+        e.preventDefault();
+        if (!draggedRow) return;
+        var after = rowAfter(container, e.clientY);
+        if (after == null) container.appendChild(draggedRow);
+        else container.insertBefore(draggedRow, after);
+      });
+
+      rows.forEach(function(item){
+        container.appendChild(makeRow(cat, item, container));
+      });
+      listWrap.appendChild(container);
+      applyFilter(container);
+    }
+
+    function addEntry(){
+      state[cat.key].push(["", ""]);
+      persist();
+      renderNav();
+      drawList();
+      var inputs = listWrap.querySelectorAll(".row input, .row textarea");
+      var container = listWrap.querySelector(".rows");
+      if (container && container.lastChild) {
+        var first = container.lastChild.querySelector("input, textarea");
+        if (first) first.focus();
+        if (container.lastChild.scrollIntoView) container.lastChild.scrollIntoView({ block:"nearest" });
+      }
+    }
+    addBtn.addEventListener("click", addEntry);
+
+    filterInput.addEventListener("input", function(){
+      filterText = filterInput.value;
+      var container = listWrap.querySelector(".rows");
+      if (container) applyFilter(container);
+    });
+
+    function applyFilter(container){
+      var f = filterText.trim().toLowerCase();
+      Array.prototype.forEach.call(container.children, function(rowEl){
+        if (!f) { rowEl.style.display = ""; return; }
+        var item = rowEl._item || ["",""];
+        var hit = (item[0]||"").toLowerCase().indexOf(f) !== -1 ||
+                  (item[1]||"").toLowerCase().indexOf(f) !== -1;
+        rowEl.style.display = hit ? "" : "none";
+      });
+    }
+
+    function makeRow(c, item, container){
+      var rowEl = el("div", { class:"row" });
+      rowEl._item = item;
+
+      var handle = el("div", { class:"drag-handle", title:"Drag to reorder", text:"⠰" });
+      handle.addEventListener("pointerdown", function(){ rowEl.draggable = true; });
+      rowEl.addEventListener("dragstart", function(e){
+        draggedRow = rowEl;
+        rowEl.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", ""); } catch(err){}
+      });
+      rowEl.addEventListener("dragend", function(){
+        rowEl.classList.remove("dragging");
+        rowEl.draggable = false;
+        draggedRow = null;
+        // Commit new order from the DOM
+        state[c.key] = Array.prototype.map.call(container.querySelectorAll(".row"), function(r){ return r._item; });
+        persist();
+        drawList();
+      });
+
+      var field1 = el("input", { type:"text",
+        placeholder: c.type === "link" ? "https://…" : c.col1 });
+      field1.value = item[0] || "";
+
+      var warnEl = null;
+      function checkUrl(){
+        if (c.type !== "link") return;
+        var bad = isSuspectUrl(c, field1.value.trim());
+        field1.classList.toggle("warn-url", bad);
+        if (bad && !warnEl) {
+          warnEl = el("div", { class:"url-warn", text:"⚠ Doesn't look like a URL — should usually start with https://" });
+          rowEl.appendChild(warnEl);
+        } else if (!bad && warnEl) {
+          warnEl.remove(); warnEl = null;
+        }
+      }
+      field1.addEventListener("input", function(){ item[0] = field1.value; checkUrl(); persist(); });
+
+      var field2;
+      if (c.type === "link") {
+        field2 = el("input", { type:"text", placeholder: c.col2 });
+      } else {
+        field2 = el("textarea", { placeholder: c.col2 });
+      }
+      field2.value = item[1] || "";
+      field2.addEventListener("input", function(){ item[1] = field2.value; persist(); });
+
+      var upBtn = el("button", { class:"icon-btn", title:"Move up", text:"↑" });
+      upBtn.addEventListener("click", function(){
+        var arr = state[c.key], i = arr.indexOf(item);
+        if (i <= 0) return;
+        arr[i] = arr[i-1]; arr[i-1] = item;
+        persist(); drawList();
+      });
+      var downBtn = el("button", { class:"icon-btn", title:"Move down", text:"↓" });
+      downBtn.addEventListener("click", function(){
+        var arr = state[c.key], i = arr.indexOf(item);
+        if (i === -1 || i === arr.length-1) return;
+        arr[i] = arr[i+1]; arr[i+1] = item;
+        persist(); drawList();
+      });
+      var delBtn = el("button", { class:"icon-btn del", title:"Delete entry", text:"✕" });
+      delBtn.addEventListener("click", function(){
+        var arr = state[c.key], i = arr.indexOf(item);
+        if (i !== -1) arr.splice(i, 1);
+        persist(); renderNav(); drawList();
+      });
+
+      rowEl.appendChild(handle);
+      rowEl.appendChild(field1);
+      rowEl.appendChild(field2);
+      rowEl.appendChild(el("div", { class:"row-actions" }, [upBtn, downBtn, delBtn]));
+      checkUrl();
+      return rowEl;
+    }
+
+    drawList();
+  }
+
+  function rowAfter(container, y){
+    var els = container.querySelectorAll(".row:not(.dragging)");
+    var closest = null, closestOffset = -Infinity;
+    Array.prototype.forEach.call(els, function(child){
+      var box = child.getBoundingClientRect();
+      var offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closestOffset) { closestOffset = offset; closest = child; }
+    });
+    return closest;
+  }
+
+  // ---- Import / Export view -----------------------------------------------------
+  function renderIO(view){
+    view.appendChild(viewHeader("Import / Export",
+      "Load an existing logger-data.json to edit it, and export the finished JSON for your team. Everything you edit is also autosaved in this browser."));
+
+    // Import card
+    var impCard = el("div", { class:"card" });
+    impCard.appendChild(el("h2", { text:"Import" }));
+    impCard.appendChild(el("p", { class:"hint", text:"Load a logger-data.json file — replaces everything currently in the editor." }));
+
+    var dz = el("div", { class:"dropzone" });
+    dz.appendChild(el("div", { text:"Drop a .json file here, or click to browse" }));
+    dz.appendChild(el("div", { class:"sub", text:"e.g. logger-data.json exported earlier or copied from the shared page" }));
+    var fileInput = document.getElementById("fileInput");
+    dz.addEventListener("click", function(){ fileInput.value = ""; fileInput.click(); });
+    dz.addEventListener("dragover", function(e){ e.preventDefault(); dz.classList.add("drag-over"); });
+    dz.addEventListener("dragleave", function(){ dz.classList.remove("drag-over"); });
+    dz.addEventListener("drop", function(e){
+      e.preventDefault(); dz.classList.remove("drag-over");
+      var f = e.dataTransfer.files[0];
+      if (f) importFile(f);
+    });
+    fileInput.onchange = function(){ if (fileInput.files[0]) importFile(fileInput.files[0]); };
+    impCard.appendChild(dz);
+
+    var det = el("details");
+    det.appendChild(el("summary", { text:"Paste JSON text instead" }));
+    var pasteArea = el("textarea", { id:"pasteArea", placeholder:"Paste JSON here…" });
+    det.appendChild(pasteArea);
+    var pasteBar = el("div", { class:"toolbar", style:"margin-top:8px;" });
+    var pasteBtn = el("button", { class:"primary", text:"Load pasted JSON" });
+    pasteBtn.addEventListener("click", function(){
+      var raw = pasteArea.value.trim();
+      if (!raw) { setStatus("importStatus", "Paste some JSON first.", true); return; }
+      importText(raw, "pasted JSON");
+    });
+    pasteBar.appendChild(pasteBtn);
+    det.appendChild(pasteBar);
+    impCard.appendChild(det);
+    impCard.appendChild(el("div", { class:"status", id:"importStatus" }));
+    view.appendChild(impCard);
+
+    // Export card
+    var expCard = el("div", { class:"card" });
+    expCard.appendChild(el("h2", { text:"Export" }));
+    expCard.appendChild(el("p", { class:"hint", text:"The JSON below updates live as you edit. Copy it to the shared page or download it as logger-data.json." }));
+
+    var toggle = el("label", { class:"toggle-label" });
+    var cb = el("input", { type:"checkbox", id:"singleLineToggle" });
+    cb.checked = localStorage.getItem(SINGLELINE_KEY) === "1";
+    cb.addEventListener("change", function(){
+      localStorage.setItem(SINGLELINE_KEY, cb.checked ? "1" : "0");
+      refreshOutput();
+    });
+    toggle.appendChild(cb);
+    toggle.appendChild(document.createTextNode(" Single-line format (for Confluence)"));
+    expCard.appendChild(toggle);
+
+    var bar = el("div", { class:"toolbar", style:"margin-top:12px;" });
+    var copyBtn = el("button", { class:"primary", text:"Copy to clipboard" });
+    copyBtn.addEventListener("click", function(){
+      var out = document.getElementById("output");
+      var done = function(){ toast("Copied to clipboard"); };
+      var fail = function(){ setStatus("genStatus", "Could not copy automatically — select the text and copy manually.", true); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(out.value).then(done, fail);
+      } else {
+        out.select();
+        try { document.execCommand("copy"); done(); } catch(e){ fail(); }
+      }
+    });
+    var dlBtn = el("button", { text:"Download logger-data.json" });
+    dlBtn.addEventListener("click", function(){
+      var text = document.getElementById("output").value;
+      var blob = new Blob([text], { type:"application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "logger-data.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast("Downloaded logger-data.json");
+    });
+    bar.appendChild(copyBtn);
+    bar.appendChild(dlBtn);
+    expCard.appendChild(bar);
+
+    expCard.appendChild(el("div", { class:"stats-line", id:"statsLine" }));
+    expCard.appendChild(el("textarea", { id:"output", readonly:"readonly" }));
+    expCard.appendChild(el("div", { class:"status", id:"genStatus" }));
+    view.appendChild(expCard);
+
+    refreshOutput();
+  }
+
+  function importFile(file){
+    var reader = new FileReader();
+    reader.onerror = function(){ setStatus("importStatus", "Could not read " + file.name + ".", true); };
+    reader.onload = function(){ importText(reader.result, file.name); };
+    reader.readAsText(file);
+  }
+  function importText(raw, sourceName){
+    try {
+      var parsed = JSON.parse(raw);
+      loadData(parsed);
+      persist();
+      renderNav();
+      renderView();
+      var total = CATEGORIES.reduce(function(n,c){ return n + state[c.key].length; }, 0);
+      setStatus("importStatus", "Imported " + sourceName + " — " + total + " entries loaded.", false);
+      toast("Import successful");
+    } catch(e) {
+      setStatus("importStatus", "Invalid JSON: " + e.message, true);
+    }
+  }
 
   function setStatus(elId, msg, isErr){
     var s = document.getElementById(elId);
+    if (!s) return;
     s.textContent = msg;
     s.className = "status " + (isErr ? "err" : "ok");
   }
 
-  document.getElementById("btnClearAll").addEventListener("click", function(){
-    if (!confirm("Clear all entries in every category (including the Log Code)?")) return;
-    loadData(EMPTY_DATA);
-    setStatus("importStatus", "Cleared all categories.", false);
-  });
-
-  document.getElementById("btnShowImport").addEventListener("click", function(){
-    document.getElementById("importWrap").style.display = "block";
-  });
-  document.getElementById("btnCancelImport").addEventListener("click", function(){
-    document.getElementById("importWrap").style.display = "none";
-    document.getElementById("importArea").value = "";
-  });
-  document.getElementById("btnDoImport").addEventListener("click", function(){
-    var raw = document.getElementById("importArea").value.trim();
-    if (!raw) { setStatus("importStatus", "Paste some JSON first.", true); return; }
-    try {
-      var parsed = JSON.parse(raw);
-      loadData(parsed);
-      document.getElementById("importWrap").style.display = "none";
-      document.getElementById("importArea").value = "";
-      setStatus("importStatus", "JSON imported successfully.", false);
-    } catch (e) {
-      setStatus("importStatus", "Invalid JSON: " + e.message, true);
-    }
-  });
-
-  // ---- Generate / Copy / Download --------------------------------------------------------------
+  // ---- Output generation (format identical to previous version) -----------------
   function buildOutputObject(){
     var out = { logCode: state.logCode || "" };
     CATEGORIES.forEach(function(c){
-      out[c.key] = state[c.key].map(function(row){
-        var a = row[0] || "";
-        var b = row[1] || "";
-        if (c.type === "link" && a) a = applyLinkFormat(a);
-        return [a, b];
-      });
+      out[c.key] = state[c.key]
+        .filter(function(row){ return (row[0]||"").trim() || (row[1]||"").trim(); })
+        .map(function(row){
+          var a = row[0] || "";
+          var b = row[1] || "";
+          if (c.type === "link" && a) a = applyLinkFormat(a);
+          return [a, b];
+        });
     });
     return out;
   }
 
-  // Single-line JSON, but with a space after every ":" and "," and around
-  // brackets — matches the format already used on the Confluence page (and
-  // is much easier to read at a glance than JSON.stringify's fully compact
-  // output). Built by walking the value ourselves (rather than regexing the
-  // stringified text) so spacing never gets inserted inside a string value
-  // itself, even if that string happens to contain a literal comma/colon.
+  // Single-line JSON with spacing that matches the shared Confluence page.
   function compactStringify(value){
     if (Array.isArray(value)) {
       if (!value.length) return "[]";
@@ -378,58 +746,62 @@
     return JSON.stringify(value);
   }
 
-  function serialize(obj){
-    var singleLine = document.getElementById("singleLineToggle").checked;
-    return singleLine ? compactStringify(obj) : JSON.stringify(obj, null, 2);
+  function refreshOutput(){
+    var out = document.getElementById("output");
+    if (!out) return;
+    var obj = buildOutputObject();
+    var single = document.getElementById("singleLineToggle");
+    out.value = (single && single.checked) ? compactStringify(obj) : JSON.stringify(obj, null, 2);
+
+    // Stats + warnings
+    var stats = document.getElementById("statsLine");
+    if (stats) {
+      var parts = CATEGORIES.map(function(c){ return obj[c.key].length + " " + c.label.toLowerCase(); });
+      var warnCount = 0;
+      CATEGORIES.forEach(function(c){
+        if (c.type !== "link") return;
+        state[c.key].forEach(function(row){ if (isSuspectUrl(c, (row[0]||"").trim())) warnCount++; });
+      });
+      stats.innerHTML = "";
+      stats.appendChild(document.createTextNode(parts.join(" · ")));
+      if (warnCount) {
+        stats.appendChild(document.createTextNode(" · "));
+        stats.appendChild(el("span", { class:"warn-text",
+          text: warnCount + (warnCount === 1 ? " entry has" : " entries have") + " a URL that doesn't start with https://" }));
+      }
+    }
   }
 
-  document.getElementById("btnGenerate").addEventListener("click", function(){
-    var obj = buildOutputObject();
-    document.getElementById("output").value = serialize(obj);
-    setStatus("genStatus", "JSON generated below.", false);
+  // ---- Theme ---------------------------------------------------------------
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = document.getElementById("themeToggle");
+    btn.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+    localStorage.setItem(THEME_KEY, theme);
+  }
+  document.getElementById("themeToggle").addEventListener("click", function(){
+    var cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    applyTheme(cur === "dark" ? "light" : "dark");
   });
 
-  document.getElementById("singleLineToggle").addEventListener("change", function(){
-    // Re-render immediately if there's already output on screen, so toggling
-    // the checkbox updates it without needing a second click on Generate.
-    if (document.getElementById("output").value.trim()) {
-      document.getElementById("output").value = serialize(buildOutputObject());
-    }
+  // ---- Clear all -------------------------------------------------------------
+  document.getElementById("btnClearAll").addEventListener("click", function(){
+    if (!confirm("Clear all entries in every category (including the Log Code)?\nThis also removes the autosaved copy in this browser.")) return;
+    state.logCode = "";
+    CATEGORIES.forEach(function(c){ state[c.key] = []; });
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById("saveText").textContent = "All changes saved locally";
+    renderNav();
+    renderView();
+    toast("Everything cleared");
   });
 
-  document.getElementById("btnCopy").addEventListener("click", function(){
-    var out = document.getElementById("output");
-    if (!out.value) {
-      out.value = serialize(buildOutputObject());
-    }
-    out.select();
-    var done = function(){ setStatus("genStatus", "Copied to clipboard.", false); };
-    var fail = function(){ setStatus("genStatus", "Could not copy automatically — select the text and copy manually.", true); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(out.value).then(done, fail);
-    } else {
-      try { document.execCommand("copy"); done(); } catch(e){ fail(); }
-    }
-  });
-
-  document.getElementById("btnDownload").addEventListener("click", function(){
-    var obj = buildOutputObject();
-    var text = serialize(obj);
-    document.getElementById("output").value = text;
-    var blob = new Blob([text], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "logger-data.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setStatus("genStatus", "Downloaded logger-data.json", false);
-  });
-
-  // ---- Init --------------------------------------------------------------
-  loadData(EMPTY_DATA);
+  // ---- Init --------------------------------------------------------------------
+  var storedTheme = localStorage.getItem(THEME_KEY);
+  applyTheme(storedTheme || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  restore();
+  renderNav();
+  renderView();
 })();
 </script>
 </body>
