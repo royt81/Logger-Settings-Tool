@@ -104,7 +104,6 @@
     resize:vertical;
   }
   input[type=text]:focus, textarea:focus{outline:2px solid var(--accent-soft); border-color:var(--accent);}
-  input.warn-url{border-color:var(--warn-border);}
 
   /* ---------- List editor ---------- */
   .list-toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
@@ -124,6 +123,8 @@
     padding:10px 12px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px;
     background:var(--card); box-shadow:var(--shadow);
   }
+  .col-headers.cols-4, .row.cols-4{grid-template-columns:26px 1.3fr 1fr .8fr .8fr 96px;}
+  .row input{min-width:0;}
   .row.dragging{opacity:.45; border-style:dashed;}
   .row textarea{min-height:36px;}
   .drag-handle{
@@ -138,7 +139,6 @@
   }
   .icon-btn:hover{background:var(--hover); color:var(--text);}
   .icon-btn.del:hover{background:var(--danger-soft); color:var(--danger);}
-  .url-warn{grid-column:2 / span 3; font-size:11.5px; color:var(--warn); margin-top:-2px;}
 
   .empty-state{
     border:1.5px dashed var(--border); border-radius:12px; padding:38px 20px; text-align:center;
@@ -159,10 +159,6 @@
   details summary{cursor:pointer; font-size:13px; color:var(--accent); user-select:none;}
   textarea#pasteArea{min-height:120px; font-family:var(--mono); font-size:12px; margin-top:10px;}
   .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
-  textarea#output{
-    min-height:280px; font-family:var(--mono); font-size:12.5px; padding:12px;
-    background:var(--code-bg); white-space:pre; margin-top:12px;
-  }
   .toggle-label{display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer; user-select:none;}
   .stats-line{font-size:12.5px; color:var(--muted); margin:10px 0 0; line-height:1.6;}
   .stats-line .warn-text{color:var(--warn); font-weight:600;}
@@ -188,6 +184,7 @@
     .nav-item{width:auto;}
     .main{padding:22px 16px 50px;}
     .row, .col-headers{grid-template-columns:22px 1fr 1fr 60px;}
+    .row.cols-4, .col-headers.cols-4{grid-template-columns:22px 1fr 1fr .8fr .8fr 60px;}
   }
 </style>
 </head>
@@ -203,6 +200,13 @@
   </div>
   <nav class="nav" id="nav"></nav>
   <div class="sidebar-footer">
+    <div class="footer-actions">
+      <button class="primary" id="btnCopyJson">Copy JSON</button>
+      <button id="btnDownloadJson" title="Download logger-data.json" style="flex:0 0 auto;">⬇</button>
+    </div>
+    <label class="toggle-label" style="font-size:12.5px;">
+      <input type="checkbox" id="singleLineToggle"> Single-line format (for Confluence)
+    </label>
     <div class="save-indicator" id="saveIndicator"><span class="dot"></span><span id="saveText">All changes saved locally</span></div>
     <div class="footer-actions">
       <button class="ghost" id="themeToggle" title="Toggle dark mode">🌙 Dark</button>
@@ -237,8 +241,8 @@
       col1:"URL", col2:"Label",
       desc:"Handbook links shown in the Handbook sidebar. URLs starting with http open in a new tab." },
     { key:"formulasLinks",   label:"Formulas Links",   icon:"link", type:"link",
-      col1:"URL", col2:"Label",
-      desc:"Forms and formulas shown in the Formulas sidebar." },
+      col1:"URL", col2:"Label", col3:"Category (optional)", col4:"Sub-category (optional)",
+      desc:"Forms and formulas shown in the Formulas sidebar. Entries with the same category are grouped into a folder; a sub-category adds a second folder level. A sub-category without a category is ignored. Folder order follows the order of first appearance in this list." },
     { key:"copyPasteMenu",   label:"Copy/Paste Menu",  icon:"clipboard", type:"text",
       col1:"Label shown", col2:"Text copied (multi-line OK)",
       desc:"Quick copy snippets. Clicking an entry in the popup copies the text to the clipboard." },
@@ -263,7 +267,7 @@
   // ---- State ---------------------------------------------------------------
   var state = { logCode: "" };
   CATEGORIES.forEach(function(c){ state[c.key] = []; });
-  var activeView = CATEGORIES[0].key; // category key | "general" | "io"
+  var activeView = "io"; // category key | "general" | "io" — Import is the landing page
   var filterText = "";
   var draggedRow = null;
 
@@ -294,14 +298,6 @@
     s.style.display = "contents";
     return s.firstChild;
   }
-  function isSuspectUrl(cat, v){
-    // Handbook links may be relative extension paths; everywhere else a URL
-    // is expected to start with http(s). Soft warning only — never blocks.
-    if (!v) return false;
-    if (/^https?:\/\//i.test(v)) return false;
-    if (cat.key === "handbookLinks") return false;
-    return true;
-  }
 
   // ---- Persistence (autosave) ----------------------------------------------
   var saveTimer = null;
@@ -316,7 +312,7 @@
       } catch(e) {
         st.textContent = "Could not save (storage full?)";
       }
-      if (activeView === "io") refreshOutput();
+      if (activeView === "io") refreshStats();
     }, 250);
   }
   function restore(){
@@ -337,7 +333,11 @@
         var a = pair && pair[0] != null ? String(pair[0]) : "";
         var b = pair && pair[1] != null ? String(pair[1]) : "";
         if (c.type === "link" && !alreadyPlain) a = stripLinkFormat(a);
-        return [a, b];
+        if (!c.col3) return [a, b];
+        var g = pair && pair[2] != null ? String(pair[2]) : "";
+        var s = pair && pair[3] != null ? String(pair[3]) : "";
+        if (!g.trim()) s = ""; // a sub-category needs a category
+        return [a, b, g, s];
       });
     });
   }
@@ -357,6 +357,9 @@
     var nav = document.getElementById("nav");
     nav.innerHTML = "";
 
+    nav.appendChild(el("div", { class:"nav-label", text:"File" }));
+    nav.appendChild(navItem("io", "Import", "io", null));
+
     nav.appendChild(el("div", { class:"nav-label", text:"Settings" }));
     nav.appendChild(navItem("general", "General", "gear", null));
 
@@ -364,9 +367,6 @@
     CATEGORIES.forEach(function(c){
       nav.appendChild(navItem(c.key, c.label, c.icon, state[c.key].length));
     });
-
-    nav.appendChild(el("div", { class:"nav-label", text:"File" }));
-    nav.appendChild(navItem("io", "Import / Export", "io", null));
   }
   function navItem(key, label, iconName, count){
     var item = el("button", { class:"nav-item" + (activeView === key ? " active" : "") });
@@ -435,6 +435,37 @@
     var listWrap = el("div");
     view.appendChild(listWrap);
 
+    // Autocomplete datalists for extra columns (category / sub-category)
+    var dlCatId = "dl-" + cat.key + "-cat", dlSubId = "dl-" + cat.key + "-sub";
+    if (cat.col3) {
+      view.appendChild(el("datalist", { id: dlCatId }));
+      view.appendChild(el("datalist", { id: dlSubId }));
+    }
+    function uniqueVals(idx, groupFilter){
+      var seen = {}, out = [];
+      state[cat.key].forEach(function(r){
+        if (groupFilter) {
+          if ((r[2]||"").trim().toLowerCase() !== groupFilter) return;
+        }
+        var v = (r[idx]||"").trim();
+        if (!v) return;
+        var k = v.toLowerCase();
+        if (!seen[k]) { seen[k] = 1; out.push(v); }
+      });
+      return out;
+    }
+    function fillDatalist(id, vals){
+      var dl = document.getElementById(id);
+      if (!dl) return;
+      dl.innerHTML = "";
+      vals.forEach(function(v){ dl.appendChild(el("option", { value: v })); });
+    }
+    function refreshCatDatalist(){ fillDatalist(dlCatId, uniqueVals(2)); }
+    function refreshSubDatalist(groupVal){
+      // Scoped to the typed category (case-insensitive); all sub-categories if none typed.
+      fillDatalist(dlSubId, uniqueVals(3, (groupVal||"").trim().toLowerCase()));
+    }
+
     function drawList(){
       listWrap.innerHTML = "";
       var rows = state[cat.key];
@@ -450,12 +481,17 @@
         return;
       }
 
-      listWrap.appendChild(el("div", { class:"col-headers" }, [
+      var headers = [
         el("div", { text:"" }),
         el("div", { text: cat.col1 }),
-        el("div", { text: cat.col2 }),
-        el("div", { text:"", style:"text-align:right" })
-      ]));
+        el("div", { text: cat.col2 })
+      ];
+      if (cat.col3) {
+        headers.push(el("div", { text: cat.col3 }));
+        headers.push(el("div", { text: cat.col4 }));
+      }
+      headers.push(el("div", { text:"", style:"text-align:right" }));
+      listWrap.appendChild(el("div", { class:"col-headers" + (cat.col3 ? " cols-4" : "") }, headers));
 
       var container = el("div", { class:"rows" });
       container.addEventListener("dragover", function(e){
@@ -474,7 +510,7 @@
     }
 
     function addEntry(){
-      state[cat.key].push(["", ""]);
+      state[cat.key].push(cat.col3 ? ["", "", "", ""] : ["", ""]);
       persist();
       renderNav();
       drawList();
@@ -499,14 +535,13 @@
       Array.prototype.forEach.call(container.children, function(rowEl){
         if (!f) { rowEl.style.display = ""; return; }
         var item = rowEl._item || ["",""];
-        var hit = (item[0]||"").toLowerCase().indexOf(f) !== -1 ||
-                  (item[1]||"").toLowerCase().indexOf(f) !== -1;
+        var hit = item.some(function(v){ return (v||"").toLowerCase().indexOf(f) !== -1; });
         rowEl.style.display = hit ? "" : "none";
       });
     }
 
     function makeRow(c, item, container){
-      var rowEl = el("div", { class:"row" });
+      var rowEl = el("div", { class:"row" + (c.col3 ? " cols-4" : "") });
       rowEl._item = item;
 
       var handle = el("div", { class:"drag-handle", title:"Drag to reorder", text:"⠰" });
@@ -530,20 +565,7 @@
       var field1 = el("input", { type:"text",
         placeholder: c.type === "link" ? "https://…" : c.col1 });
       field1.value = item[0] || "";
-
-      var warnEl = null;
-      function checkUrl(){
-        if (c.type !== "link") return;
-        var bad = isSuspectUrl(c, field1.value.trim());
-        field1.classList.toggle("warn-url", bad);
-        if (bad && !warnEl) {
-          warnEl = el("div", { class:"url-warn", text:"⚠ Doesn't look like a URL — should usually start with https://" });
-          rowEl.appendChild(warnEl);
-        } else if (!bad && warnEl) {
-          warnEl.remove(); warnEl = null;
-        }
-      }
-      field1.addEventListener("input", function(){ item[0] = field1.value; checkUrl(); persist(); });
+      field1.addEventListener("input", function(){ item[0] = field1.value; persist(); });
 
       var field2;
       if (c.type === "link") {
@@ -553,6 +575,23 @@
       }
       field2.value = item[1] || "";
       field2.addEventListener("input", function(){ item[1] = field2.value; persist(); });
+
+      var field3 = null, field4 = null;
+      if (c.col3) {
+        field3 = el("input", { type:"text", placeholder:"Category…", list: dlCatId, title: c.col3 });
+        field3.value = item[2] || "";
+        field3.addEventListener("focus", refreshCatDatalist);
+        field3.addEventListener("input", function(){
+          item[2] = field3.value;
+          refreshSubDatalist(field3.value);
+          persist();
+        });
+
+        field4 = el("input", { type:"text", placeholder:"Sub-category…", list: dlSubId, title: c.col4 });
+        field4.value = item[3] || "";
+        field4.addEventListener("focus", function(){ refreshSubDatalist(field3.value); });
+        field4.addEventListener("input", function(){ item[3] = field4.value; persist(); });
+      }
 
       var upBtn = el("button", { class:"icon-btn", title:"Move up", text:"↑" });
       upBtn.addEventListener("click", function(){
@@ -578,8 +617,9 @@
       rowEl.appendChild(handle);
       rowEl.appendChild(field1);
       rowEl.appendChild(field2);
+      if (field3) rowEl.appendChild(field3);
+      if (field4) rowEl.appendChild(field4);
       rowEl.appendChild(el("div", { class:"row-actions" }, [upBtn, downBtn, delBtn]));
-      checkUrl();
       return rowEl;
     }
 
@@ -599,14 +639,27 @@
 
   // ---- Import / Export view -----------------------------------------------------
   function renderIO(view){
-    view.appendChild(viewHeader("Import / Export",
-      "Load an existing logger-data.json to edit it, and export the finished JSON for your team. Everything you edit is also autosaved in this browser."));
+    view.appendChild(viewHeader("Import",
+      "Load an existing logger-data.json to edit it. When you're done, use “Copy JSON” in the sidebar to export. Everything you edit is also autosaved in this browser."));
 
-    // Import card
+    // Import card — paste JSON is the default, file upload underneath
     var impCard = el("div", { class:"card" });
     impCard.appendChild(el("h2", { text:"Import" }));
-    impCard.appendChild(el("p", { class:"hint", text:"Load a logger-data.json file — replaces everything currently in the editor." }));
+    impCard.appendChild(el("p", { class:"hint", text:"Paste the JSON code and load it — replaces everything currently in the editor." }));
 
+    var pasteArea = el("textarea", { id:"pasteArea", placeholder:"Paste JSON here…" });
+    impCard.appendChild(pasteArea);
+    var pasteBar = el("div", { class:"toolbar", style:"margin-top:8px;" });
+    var pasteBtn = el("button", { class:"primary", text:"Load pasted JSON" });
+    pasteBtn.addEventListener("click", function(){
+      var raw = pasteArea.value.trim();
+      if (!raw) { setStatus("importStatus", "Paste some JSON first.", true); return; }
+      importText(raw, "pasted JSON");
+    });
+    pasteBar.appendChild(pasteBtn);
+    impCard.appendChild(pasteBar);
+
+    impCard.appendChild(el("p", { class:"hint", style:"margin:16px 0 8px;", text:"Or upload a file:" }));
     var dz = el("div", { class:"dropzone" });
     dz.appendChild(el("div", { text:"Drop a .json file here, or click to browse" }));
     dz.appendChild(el("div", { class:"sub", text:"e.g. logger-data.json exported earlier or copied from the shared page" }));
@@ -622,73 +675,16 @@
     fileInput.onchange = function(){ if (fileInput.files[0]) importFile(fileInput.files[0]); };
     impCard.appendChild(dz);
 
-    var det = el("details");
-    det.appendChild(el("summary", { text:"Paste JSON text instead" }));
-    var pasteArea = el("textarea", { id:"pasteArea", placeholder:"Paste JSON here…" });
-    det.appendChild(pasteArea);
-    var pasteBar = el("div", { class:"toolbar", style:"margin-top:8px;" });
-    var pasteBtn = el("button", { class:"primary", text:"Load pasted JSON" });
-    pasteBtn.addEventListener("click", function(){
-      var raw = pasteArea.value.trim();
-      if (!raw) { setStatus("importStatus", "Paste some JSON first.", true); return; }
-      importText(raw, "pasted JSON");
-    });
-    pasteBar.appendChild(pasteBtn);
-    det.appendChild(pasteBar);
-    impCard.appendChild(det);
     impCard.appendChild(el("div", { class:"status", id:"importStatus" }));
     view.appendChild(impCard);
 
-    // Export card
-    var expCard = el("div", { class:"card" });
-    expCard.appendChild(el("h2", { text:"Export" }));
-    expCard.appendChild(el("p", { class:"hint", text:"The JSON below updates live as you edit. Copy it to the shared page or download it as logger-data.json." }));
+    // Content overview / warnings
+    var statsCard = el("div", { class:"card" });
+    statsCard.appendChild(el("h2", { text:"Current content" }));
+    statsCard.appendChild(el("div", { class:"stats-line", id:"statsLine" }));
+    view.appendChild(statsCard);
 
-    var toggle = el("label", { class:"toggle-label" });
-    var cb = el("input", { type:"checkbox", id:"singleLineToggle" });
-    cb.checked = localStorage.getItem(SINGLELINE_KEY) === "1";
-    cb.addEventListener("change", function(){
-      localStorage.setItem(SINGLELINE_KEY, cb.checked ? "1" : "0");
-      refreshOutput();
-    });
-    toggle.appendChild(cb);
-    toggle.appendChild(document.createTextNode(" Single-line format (for Confluence)"));
-    expCard.appendChild(toggle);
-
-    var bar = el("div", { class:"toolbar", style:"margin-top:12px;" });
-    var copyBtn = el("button", { class:"primary", text:"Copy to clipboard" });
-    copyBtn.addEventListener("click", function(){
-      var out = document.getElementById("output");
-      var done = function(){ toast("Copied to clipboard"); };
-      var fail = function(){ setStatus("genStatus", "Could not copy automatically — select the text and copy manually.", true); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(out.value).then(done, fail);
-      } else {
-        out.select();
-        try { document.execCommand("copy"); done(); } catch(e){ fail(); }
-      }
-    });
-    var dlBtn = el("button", { text:"Download logger-data.json" });
-    dlBtn.addEventListener("click", function(){
-      var text = document.getElementById("output").value;
-      var blob = new Blob([text], { type:"application/json" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url; a.download = "logger-data.json";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast("Downloaded logger-data.json");
-    });
-    bar.appendChild(copyBtn);
-    bar.appendChild(dlBtn);
-    expCard.appendChild(bar);
-
-    expCard.appendChild(el("div", { class:"stats-line", id:"statsLine" }));
-    expCard.appendChild(el("textarea", { id:"output", readonly:"readonly" }));
-    expCard.appendChild(el("div", { class:"status", id:"genStatus" }));
-    view.appendChild(expCard);
-
-    refreshOutput();
+    refreshStats();
   }
 
   function importFile(file){
@@ -729,7 +725,13 @@
           var a = row[0] || "";
           var b = row[1] || "";
           if (c.type === "link" && a) a = applyLinkFormat(a);
-          return [a, b];
+          if (!c.col3) return [a, b];
+          // Extension format: [url, label] | [url, label, category] | [url, label, category, subcategory]
+          var g = (row[2] || "").trim();
+          var s = (row[3] || "").trim();
+          if (!g) return [a, b];          // sub-category without a category is dropped
+          if (!s) return [a, b, g];
+          return [a, b, g, s];
         });
     });
     return out;
@@ -749,31 +751,71 @@
     return JSON.stringify(value);
   }
 
-  function refreshOutput(){
-    var out = document.getElementById("output");
-    if (!out) return;
+  function buildOutputText(){
     var obj = buildOutputObject();
     var single = document.getElementById("singleLineToggle");
-    out.value = (single && single.checked) ? compactStringify(obj) : JSON.stringify(obj, null, 2);
+    return (single && single.checked) ? compactStringify(obj) : JSON.stringify(obj, null, 2);
+  }
 
-    // Stats + warnings
+  function refreshStats(){
     var stats = document.getElementById("statsLine");
     if (stats) {
+      var obj = buildOutputObject();
       var parts = CATEGORIES.map(function(c){ return obj[c.key].length + " " + c.label.toLowerCase(); });
-      var warnCount = 0;
+      var orphanCount = 0;
       CATEGORIES.forEach(function(c){
-        if (c.type !== "link") return;
-        state[c.key].forEach(function(row){ if (isSuspectUrl(c, (row[0]||"").trim())) warnCount++; });
+        if (!c.col3) return;
+        state[c.key].forEach(function(row){
+          if ((row[3]||"").trim() && !(row[2]||"").trim()) orphanCount++;
+        });
       });
       stats.innerHTML = "";
       stats.appendChild(document.createTextNode(parts.join(" · ")));
-      if (warnCount) {
+      if (orphanCount) {
         stats.appendChild(document.createTextNode(" · "));
         stats.appendChild(el("span", { class:"warn-text",
-          text: warnCount + (warnCount === 1 ? " entry has" : " entries have") + " a URL that doesn't start with https://" }));
+          text: orphanCount + (orphanCount === 1 ? " entry has" : " entries have") + " a sub-category without a category (won't be exported)" }));
       }
     }
   }
+
+  // ---- Sidebar export (Copy JSON / Download / single-line toggle) -----------
+  var singleLineCb = document.getElementById("singleLineToggle");
+  singleLineCb.checked = localStorage.getItem(SINGLELINE_KEY) !== "0"; // checked by default
+  singleLineCb.addEventListener("change", function(){
+    localStorage.setItem(SINGLELINE_KEY, singleLineCb.checked ? "1" : "0");
+  });
+
+  document.getElementById("btnCopyJson").addEventListener("click", function(){
+    var text = buildOutputText();
+    var done = function(){ toast("JSON copied to clipboard"); };
+    var fail = function(){
+      // Fallback: hidden textarea + execCommand
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); done(); }
+      catch(e){ toast("Could not copy — use Download instead"); }
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else {
+      fail();
+    }
+  });
+
+  document.getElementById("btnDownloadJson").addEventListener("click", function(){
+    var blob = new Blob([buildOutputText()], { type:"application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "logger-data.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("Downloaded logger-data.json");
+  });
 
   // ---- Theme ---------------------------------------------------------------
   function applyTheme(theme){
