@@ -228,9 +228,9 @@
   // Data model & JSON output format are IDENTICAL to the previous version of
   // this tool — the extension's Update Info page reads the same keys.
   var CATEGORIES = [
-    { key:"logEntries",      label:"Log Entries",      icon:"lines", type:"text",
+    { key:"logEntries",      label:"Log Entries",      icon:"lines", type:"text", allowEmpty:true,
       col1:"Short label", col2:"Full message (multi-line OK)",
-      desc:"Prewritten log lines. The short label is what the user sees in the popup; the full message is what gets copied as DD.MM.YYYY_INITIALS: message." },
+      desc:"Prewritten log lines. The short label is what the user sees in the popup; the full message is what gets copied as DD.MM.YYYY_INITIALS: message. A completely empty row is allowed — it gives a blank log line (just the date prefix) in the popup." },
     { key:"linkList",        label:"Shortcut Links",   icon:"link", type:"link",
       col1:"URL", col2:"Label",
       desc:"Top shortcut links shown in the Logger's main shortcuts panel." },
@@ -720,7 +720,7 @@
     var out = { logCode: state.logCode || "" };
     CATEGORIES.forEach(function(c){
       out[c.key] = state[c.key]
-        .filter(function(row){ return (row[0]||"").trim() || (row[1]||"").trim(); })
+        .filter(function(row){ return c.allowEmpty || (row[0]||"").trim() || (row[1]||"").trim(); })
         .map(function(row){
           var a = row[0] || "";
           var b = row[1] || "";
